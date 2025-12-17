@@ -1,0 +1,8 @@
+{
+  "name": "QuickHaul (퀵홀)",
+  "description": "직관적이고 빠른 화물/용달 호출 서비스. 고객용, 기사용, 관리자용 모드를 모두 지원합니다.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ]
+}
