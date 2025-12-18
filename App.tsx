@@ -1,14 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
-import { UserRole, Order, OrderStatus, VehicleType } from './types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { UserRole, Order, OrderStatus, VehicleType, DriverRegistration } from './types';
 import { LandingView } from './components/LandingView';
 import { PartnerPortal } from './components/PartnerPortal';
 
 const App = () => {
-  // viewMode: 'WEB' (Customer Landing) | 'APP' (Driver/Admin Portal)
   const [viewMode, setViewMode] = useState<'WEB' | 'APP'>('WEB');
   const [portalRole, setPortalRole] = useState<UserRole.DRIVER | UserRole.ADMIN>(UserRole.DRIVER);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [registrations, setRegistrations] = useState<DriverRegistration[]>([]);
 
   const generateInitialData = (): Order[] => {
     const now = Date.now();
@@ -47,6 +47,27 @@ const App = () => {
 
   useEffect(() => {
     setOrders(generateInitialData());
+    setRegistrations([
+      {
+        id: 'me', // 기사용 앱 데모 ID
+        driverName: '홍길동',
+        carNumber: '서울 12가 3456',
+        vehicleType: VehicleType.TRUCK_1TON,
+        phoneNumber: '010-1111-2222',
+        status: 'APPROVED',
+        appliedAt: Date.now() - 1000000,
+        isTracking: false
+      },
+      {
+        id: 'reg-1',
+        driverName: '이강인',
+        carNumber: '경기 88나 9999',
+        vehicleType: VehicleType.TRUCK_1TON,
+        phoneNumber: '010-1111-2222',
+        status: 'PENDING',
+        appliedAt: Date.now() - 100000
+      }
+    ]);
   }, []);
 
   const addOrder = (newOrderData: Omit<Order, 'id' | 'createdAt' | 'status'>) => {
@@ -70,6 +91,27 @@ const App = () => {
       o.id === orderId ? { ...o, status: OrderStatus.COMPLETED } : o
     ));
   };
+
+  const submitRegistration = (regData: Omit<DriverRegistration, 'id' | 'status' | 'appliedAt'>) => {
+    const newReg: DriverRegistration = {
+      ...regData,
+      id: 'reg-' + Math.random().toString(36).substr(2, 5),
+      status: 'PENDING',
+      appliedAt: Date.now()
+    };
+    setRegistrations(prev => [newReg, ...prev]);
+  };
+
+  const approveRegistration = (regId: string) => {
+    setRegistrations(prev => prev.map(r => r.id === regId ? { ...r, status: 'APPROVED' } : r));
+  };
+
+  // 위치 추적 상태 업데이트 함수
+  const updateDriverLocation = useCallback((driverId: string, lat: number, lng: number, isTracking: boolean) => {
+    setRegistrations(prev => prev.map(r => 
+      r.id === driverId ? { ...r, latitude: lat, longitude: lng, isTracking, lastLocationUpdate: Date.now() } : r
+    ));
+  }, []);
 
   const simulateOrder = () => {
     const scenarios = [
@@ -96,8 +138,12 @@ const App = () => {
         role={portalRole} 
         setRole={setPortalRole} 
         orders={orders} 
+        registrations={registrations}
         acceptOrder={acceptOrder}
         completeOrder={completeOrder}
+        submitRegistration={submitRegistration}
+        approveRegistration={approveRegistration}
+        updateLocation={updateDriverLocation}
         onExit={() => setViewMode('WEB')}
         onSimulate={simulateOrder}
         onReset={() => setOrders(generateInitialData())}

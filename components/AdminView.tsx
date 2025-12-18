@@ -1,17 +1,21 @@
 
 import React from 'react';
-import { Order, OrderStatus } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from 'recharts';
-import { Users, Truck, DollarSign, Activity, RotateCcw, Zap, Target, Leaf, ShieldCheck, Search } from 'lucide-react';
+import { Order, OrderStatus, DriverRegistration } from '../types';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Users, Truck, DollarSign, Activity, RotateCcw, Zap, Target, Leaf, ShieldCheck, Search, CheckCircle, XCircle, Clock, MapPin, LocateFixed, SignalHigh } from 'lucide-react';
 
 interface AdminViewProps {
   orders: Order[];
+  registrations: DriverRegistration[];
+  approveRegistration: (id: string) => void;
   onReset?: () => void;
   onSimulate?: () => void;
 }
 
-export const AdminView: React.FC<AdminViewProps> = ({ orders, onReset, onSimulate }) => {
+export const AdminView: React.FC<AdminViewProps> = ({ orders, registrations, approveRegistration, onReset, onSimulate }) => {
   const totalRevenue = orders.reduce((sum, order) => sum + order.price, 0);
+  const pendingRegs = registrations.filter(r => r.status === 'PENDING');
+  const activeDrivers = registrations.filter(r => r.isTracking);
   
   const statusData = [
     { name: '대기', count: orders.filter(o => o.status === OrderStatus.PENDING).length, color: '#94a3b8' },
@@ -23,15 +27,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ orders, onReset, onSimulat
     <div className="p-6 max-w-7xl mx-auto bg-slate-50 min-h-screen pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">TMS Control Center</h2>
-          <p className="text-slate-500 text-sm mt-1 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-green-500"/> AI 기반 배차 최적화 및 공차율 관제 중
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">QuickHaul Control</h2>
+          <p className="text-slate-500 text-sm mt-1 flex items-center gap-2 font-bold">
+            <Activity className="w-4 h-4 text-green-500"/> 실시간 기사 위치 및 배차 최적화 관제 중
           </p>
         </div>
         
         <div className="flex items-center gap-2">
            <button onClick={onSimulate} className="flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold rounded-xl shadow-lg transition-all">
-             <Zap className="w-4 h-4 fill-current" /> 신규 주문 시뮬레이션
+             <Zap className="w-4 h-4 fill-current" /> 신규 주문 생성
            </button>
            <button onClick={onReset} className="p-2.5 bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-slate-600">
              <RotateCcw className="w-5 h-5" />
@@ -41,10 +45,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ orders, onReset, onSimulat
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {[
-            { label: '배차 효율 (카카오T)', value: '92.4%', icon: Target, color: 'text-orange-600', bg: 'bg-orange-50' },
-            { label: '누적 매출', value: (totalRevenue/10000).toFixed(1) + '만원', icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50' },
-            { label: '탄소 절감액', value: '42.1kg', icon: Leaf, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            { label: '보안 통제', value: 'ACTIVE', icon: ShieldCheck, color: 'text-blue-600', bg: 'bg-blue-50' }
+            { label: '배차 효율', value: '92.4%', icon: Target, color: 'text-orange-600', bg: 'bg-orange-50' },
+            { label: '활성 기사', value: activeDrivers.length + '명', icon: LocateFixed, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+            { label: '승인 대기', value: pendingRegs.length + '건', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: '보안 통제', value: 'NORMAL', icon: ShieldCheck, color: 'text-green-600', bg: 'bg-green-50' }
         ].map((stat, idx) => (
             <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-5">
                 <div className={`p-4 rounded-2xl ${stat.bg}`}>
@@ -58,76 +62,91 @@ export const AdminView: React.FC<AdminViewProps> = ({ orders, onReset, onSimulat
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden h-[450px] relative">
-                <div className="absolute top-6 left-6 z-20 space-y-2">
-                  <div className="bg-slate-900/90 backdrop-blur text-white px-4 py-2 rounded-xl text-xs font-bold shadow-2xl flex items-center gap-2">
-                    <Search className="w-3 h-3"/> 실시간 LBS 차량 추적 (화물맨 기술)
-                  </div>
-                  <div className="bg-white/90 backdrop-blur text-slate-900 px-4 py-2 rounded-xl text-xs font-bold shadow-xl border border-slate-100">
-                    활성 차량: 12대 / 유휴: 2대
-                  </div>
-                </div>
-                <div className="w-full h-full bg-slate-50 relative">
-                    <div className="absolute inset-0" style={{backgroundImage: 'linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px)', backgroundSize: '40px 40px'}}></div>
-                    {/* Simulated Vehicle Markers */}
-                    {[1,2,3,4,5].map(i => (
-                      <div key={i} className="absolute animate-pulse" style={{top: `${20+i*15}%`, left: `${10+i*12}%`}}>
-                        <div className={`w-4 h-4 rounded-full shadow-2xl ring-4 ${i%2===0 ? 'bg-orange-500 ring-orange-100' : 'bg-blue-500 ring-blue-100'}`}></div>
-                      </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-                <h3 className="font-black text-slate-900 mb-8 flex items-center justify-between">
-                  <span>운송 모니터링 현황</span>
-                  <span className="text-xs text-slate-400 font-normal underline cursor-pointer">상세보기</span>
-                </h3>
-                <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={statusData} barSize={60}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fontWeight: 700}} />
-                        <YAxis axisLine={false} tickLine={false} />
-                        <Tooltip contentStyle={{borderRadius: '16px', border:'none', boxShadow:'0 20px 25px -5px rgba(0,0,0,0.1)'}} />
-                        <Bar dataKey="count" radius={[12,12,0,0]}>
-                            {statusData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-        </div>
-
-        <div className="space-y-8">
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
-                <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                    <h3 className="font-black text-slate-800">통합 로그 (Dispatch King)</h3>
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
-                </div>
-                <div className="flex-1 overflow-y-auto max-h-[700px]">
-                    {[...orders].map((order, idx) => (
-                        <div key={order.id} className={`p-5 border-b border-slate-50 hover:bg-slate-50 transition-all ${idx === 0 ? 'bg-orange-50/30' : ''}`}>
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[10px] font-black px-2 py-0.5 rounded bg-slate-900 text-white">
-                                    {order.status}
-                                </span>
-                                <span className="text-[10px] text-slate-400 font-bold">{new Date(order.createdAt).toLocaleTimeString()}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+        {/* Live Fleet Section */}
+        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm flex flex-col">
+            <h3 className="font-black text-slate-900 mb-6 flex items-center gap-2">
+              <LocateFixed className="w-5 h-5 text-cyan-600"/> 실시간 기사 관제
+            </h3>
+            <div className="flex-1 overflow-y-auto max-h-[400px] space-y-4">
+                {activeDrivers.length === 0 ? (
+                    <div className="py-20 text-center text-slate-300 text-xs font-bold">현재 추적 중인 기사가 없습니다.</div>
+                ) : activeDrivers.map(drv => (
+                    <div key={drv.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-2">
+                            <SignalHigh className="w-3 h-3 text-green-500 animate-pulse" />
+                        </div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-slate-100 shadow-sm">
+                                <Truck className="w-5 h-5 text-slate-400" />
                             </div>
-                            <p className="text-xs font-bold text-slate-800 mb-1">{order.origin.split(' ')[1]} → {order.destination.split(' ')[1]}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">고객: {order.customerName}</span>
-                              {order.recipientPhone && <span className="text-[9px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded">수신자 알림 완료</span>}
+                            <div>
+                                <h4 className="text-sm font-black text-slate-900">{drv.driverName}</h4>
+                                <p className="text-[9px] text-slate-400 font-bold uppercase">{drv.carNumber}</p>
                             </div>
                         </div>
-                    ))}
-                </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-600 font-bold">
+                            <MapPin className="w-3 h-3 text-orange-500" />
+                            <span>{drv.latitude?.toFixed(4)}, {drv.longitude?.toFixed(4)}</span>
+                            <span className="text-slate-300 ml-auto">업데이트: {new Date(drv.lastLocationUpdate || 0).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}</span>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
+
+        <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+            <h3 className="font-black text-slate-900 mb-8 flex items-center justify-between">
+              <span>운송 통계 분석</span>
+              <span className="text-xs text-slate-400 font-normal">전체 네트워크 상태</span>
+            </h3>
+            <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={statusData} barSize={60}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fontWeight: 700}} />
+                    <YAxis axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{borderRadius: '16px', border:'none', boxShadow:'0 20px 25px -5px rgba(0,0,0,0.1)'}} />
+                    <Bar dataKey="count" radius={[12,12,0,0]}>
+                        {statusData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                    </Bar>
+                </BarChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+      </div>
+      
+      {/* Registration Approval Section */}
+      <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+          <h3 className="font-black text-slate-900 mb-6 flex items-center gap-2">
+            <Users className="w-5 h-5 text-blue-600"/> 기사 승인 대기 목록
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {pendingRegs.map(reg => (
+                <div key={reg.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h4 className="font-bold text-slate-900">{reg.driverName}</h4>
+                      <p className="text-[10px] text-slate-500 font-medium">{reg.carNumber} | {reg.vehicleType}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => approveRegistration(reg.id)}
+                      className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors"
+                    >
+                      승인
+                    </button>
+                    <button className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 text-xs font-bold rounded-lg transition-colors">
+                      반려
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {pendingRegs.length === 0 && <p className="col-span-3 text-center py-10 text-slate-400 text-sm font-bold">승인 대기 중인 기사가 없습니다.</p>}
+          </div>
       </div>
     </div>
   );

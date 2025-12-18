@@ -33,23 +33,38 @@ export interface Order {
   customerName: string;
   origin: string;
   destination: string;
-  recipientPhone?: string; // 배차킹 스타일: 도착지 알림용
+  recipientPhone?: string;
   vehicleType: VehicleType;
   vehicleOption?: string[];
   price: number;
-  fee: number; // 더운반 스타일: 수수료 (0원 강조용)
+  fee: number;
   status: OrderStatus;
   driverId?: string;
   description?: string;
   cargoDetails?: CargoDetails;
   isInsured: boolean;
   electronicReceiptSigned?: boolean;
-  payoutStatus: 'PENDING' | 'READY' | 'COMPLETED'; // 즉시 정산 상태
+  payoutStatus: 'PENDING' | 'READY' | 'COMPLETED';
+}
+
+export interface DriverRegistration {
+  id: string;
+  driverName: string;
+  carNumber: string;
+  vehicleType: VehicleType;
+  phoneNumber: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  appliedAt: number;
+  // New properties for location tracking
+  isTracking?: boolean;
+  latitude?: number;
+  longitude?: number;
+  lastLocationUpdate?: number;
 }
 
 export interface OrderStats {
   totalOrders: number;
   activeDrivers: number;
   revenue: number;
-  efficiencyRate: number; // 카카오T 스타일: 공차율 최적화 지표
+  efficiencyRate: number;
 }

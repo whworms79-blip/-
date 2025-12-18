@@ -24,7 +24,7 @@ const PRICING_RULES = `
 `;
 
 export const parseNaturalLanguageOrder = async (input: string): Promise<ParsedOrderRequest | null> => {
-  // Use process.env.API_KEY directly as per guidelines. Do not cast to any.
+  // Use process.env.API_KEY directly as per guidelines.
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   try {
@@ -62,7 +62,7 @@ export const parseNaturalLanguageOrder = async (input: string): Promise<ParsedOr
       }
     });
 
-    // response.text is a property, not a method. Do not use response.text().
+    // response.text is a property, not a method.
     const jsonStr = response.text;
     return jsonStr ? (JSON.parse(jsonStr) as ParsedOrderRequest) : null;
   } catch (error) {
@@ -72,14 +72,25 @@ export const parseNaturalLanguageOrder = async (input: string): Promise<ParsedOr
 };
 
 export const getAddressFromCoordinates = async (lat: number, lng: number) => {
-  // Use process.env.API_KEY directly as per guidelines. Do not cast to any.
+  // Use process.env.API_KEY directly as per guidelines.
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       // Maps grounding is only supported in Gemini 2.5 series models.
       model: "gemini-2.5-flash",
-      contents: `What is the road address for ${lat}, ${lng} in Korean?`,
-      config: { tools: [{ googleMaps: {} }] }
+      contents: "What is the road address for this location in Korean?",
+      config: { 
+        tools: [{ googleMaps: {} }],
+        // Correctly include user location in toolConfig for maps grounding.
+        toolConfig: {
+          retrievalConfig: {
+            latLng: {
+              latitude: lat,
+              longitude: lng
+            }
+          }
+        }
+      }
     });
     // response.text is a property.
     return { address: response.text?.trim() };
@@ -87,16 +98,31 @@ export const getAddressFromCoordinates = async (lat: number, lng: number) => {
 };
 
 export const calculateFare = async (origin: string, destination: string, vehicleType: VehicleType) => {
-  // Use process.env.API_KEY directly as per guidelines. Do not cast to any.
+  // Use process.env.API_KEY directly as per guidelines.
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
-      contents: `Calculate fare between ${origin} and ${destination} for ${vehicleType}. Return JSON { "price": number }.`,
-      config: { responseMimeType: "application/json" }
+      contents: `Calculate fare between ${origin} and ${destination} for ${vehicleType}.`,
+      config: { 
+        responseMimeType: "application/json",
+        // Recommended approach: use responseSchema for structured output.
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            price: { 
+              type: Type.NUMBER,
+              description: 'The shipping price in KRW'
+            }
+          },
+          required: ["price"]
+        }
+      }
     });
     // response.text is a property.
     const jsonStr = response.text;
-    return jsonStr ? JSON.parse(jsonStr).price : null;
+    if (!jsonStr) return null;
+    const result = JSON.parse(jsonStr);
+    return result.price;
   } catch { return null; }
 };
