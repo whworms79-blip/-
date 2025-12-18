@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Order, VehicleType, OrderStatus } from '../types';
 import { VehicleSelector } from './VehicleSelector';
 import { parseNaturalLanguageOrder, getAddressFromCoordinates, calculateFare } from '../services/geminiService';
-import { MapPin, Navigation, Sparkles, Loader2, Mic, MicOff, Crosshair, RefreshCw, ChevronRight, Info, ShieldCheck, Clock, Wand2, Box, Phone, FileText } from 'lucide-react';
+import { MapPin, Navigation, Sparkles, Loader2, Mic, MicOff, Crosshair, RefreshCw, ChevronRight, Info, ShieldCheck, Clock, Wand2, Box, Phone, FileText, ExternalLink } from 'lucide-react';
 
 interface CustomerViewProps {
   addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'status'>) => void;
@@ -11,6 +12,7 @@ interface CustomerViewProps {
 
 export const CustomerView: React.FC<CustomerViewProps> = ({ addOrder, myOrders }) => {
   const [origin, setOrigin] = useState('');
+  const [originMapUri, setOriginMapUri] = useState<string | undefined>();
   const [destination, setDestination] = useState('');
   const [vehicle, setVehicle] = useState<VehicleType>(VehicleType.MOTORCYCLE);
   const [price, setPrice] = useState(8000); 
@@ -24,7 +26,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ addOrder, myOrders }
   const [isLocating, setIsLocating] = useState(false);
   const recognitionRef = useRef<any>(null);
 
-  // Setup Speech Recognition (same as before)
+  // Setup Speech Recognition
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -64,8 +66,13 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ addOrder, myOrders }
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          const address = await getAddressFromCoordinates(latitude, longitude);
-          setOrigin(address || `GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          const result = await getAddressFromCoordinates(latitude, longitude);
+          if (result) {
+            setOrigin(result.address || `GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+            setOriginMapUri(result.mapUri);
+          } else {
+            setOrigin(`GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          }
         } catch {
           setOrigin(`GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
         }
@@ -91,6 +98,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ addOrder, myOrders }
       setPrice(result.estimatedPrice);
       setCargoWeight(result.cargoWeight || '');
       setCargoType(result.cargoType || '');
+      setOriginMapUri(undefined); // Reset map URI when AI parses new text
     }
   };
 
@@ -185,7 +193,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ addOrder, myOrders }
                     <div className="flex gap-2">
                        <input 
                         value={origin} 
-                        onChange={e => setOrigin(e.target.value)}
+                        onChange={e => { setOrigin(e.target.value); setOriginMapUri(undefined); }}
                         className="flex-1 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" 
                         placeholder="상차지 주소"
                        />
@@ -193,6 +201,11 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ addOrder, myOrders }
                          {isLocating ? <Loader2 className="animate-spin w-5 h-5"/> : <Crosshair className="w-5 h-5"/>}
                        </button>
                     </div>
+                    {originMapUri && (
+                      <a href={originMapUri} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-600 mt-1 flex items-center gap-1 hover:underline">
+                        <ExternalLink className="w-2.5 h-2.5" /> Google Maps에서 보기 (Grounding 확인)
+                      </a>
+                    )}
                   </div>
                   <div className="relative pl-8">
                     <Navigation className="absolute left-0 top-3 w-5 h-5 text-orange-500 bg-white z-10" />

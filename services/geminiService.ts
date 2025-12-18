@@ -1,7 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { VehicleType } from "../types";
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export interface ParsedOrderRequest {
   origin: string;
@@ -11,6 +10,11 @@ export interface ParsedOrderRequest {
   summary: string;
   cargoWeight: string;
   cargoType: string;
+}
+
+export interface AddressResult {
+  address: string | null;
+  mapUri?: string;
 }
 
 const PRICING_RULES = `
@@ -30,6 +34,9 @@ export const parseNaturalLanguageOrder = async (input: string): Promise<ParsedOr
     return null;
   }
 
+  // Create instance right before call as per guidelines
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
   try {
     const prompt = `
       사용자 요청: "${input}"
@@ -45,7 +52,8 @@ export const parseNaturalLanguageOrder = async (input: string): Promise<ParsedOr
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      // Complex reasoning task requires gemini-3-pro-preview
+      model: "gemini-3-pro-preview",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -78,19 +86,37 @@ export const parseNaturalLanguageOrder = async (input: string): Promise<ParsedOr
   }
 };
 
-export const getAddressFromCoordinates = async (lat: number, lng: number): Promise<string | null> => {
+export const getAddressFromCoordinates = async (lat: number, lng: number): Promise<AddressResult | null> => {
   if (!process.env.API_KEY) return null;
 
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
   try {
+    // Maps grounding is supported in Gemini 2.5 series models
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `What is the precise road name address in Korean for the coordinates ${lat}, ${lng}? Just return the address text, nothing else.`,
       config: {
         tools: [{ googleMaps: {} }],
+        toolConfig: {
+          retrievalConfig: {
+            latLng: {
+              latitude: lat,
+              longitude: lng
+            }
+          }
+        }
       },
     });
 
-    return response.text?.trim() || null;
+    // Extract mandatory grounding URL
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    const mapUri = chunks?.find(c => c.maps)?.maps?.uri;
+
+    return {
+      address: response.text?.trim() || null,
+      mapUri
+    };
   } catch (error) {
     console.error("Reverse geocoding error:", error);
     return null;
@@ -99,6 +125,8 @@ export const getAddressFromCoordinates = async (lat: number, lng: number): Promi
 
 export const calculateFare = async (origin: string, destination: string, vehicleType: VehicleType): Promise<number | null> => {
   if (!process.env.API_KEY || !origin || !destination) return null;
+
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   try {
     const prompt = `
@@ -109,7 +137,8 @@ export const calculateFare = async (origin: string, destination: string, vehicle
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      // Upgraded to gemini-3-pro-preview for advanced reasoning and math
+      model: "gemini-3-pro-preview",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -117,12 +146,14 @@ export const calculateFare = async (origin: string, destination: string, vehicle
           type: Type.OBJECT,
           properties: {
             price: { type: Type.INTEGER }
-          }
+          },
+          required: ["price"]
         }
       }
     });
 
-    const result = JSON.parse(response.text || "{}");
+    const text = response.text;
+    const result = JSON.parse(text || "{}");
     return result.price || null;
   } catch (error) {
     console.error("Fare calculation error:", error);
