@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserRole, Order, OrderStatus, VehicleType } from './types';
 import { CustomerView } from './components/CustomerView';
@@ -9,8 +10,8 @@ const App = () => {
   const [role, setRole] = useState<UserRole>(UserRole.CUSTOMER);
   const [orders, setOrders] = useState<Order[]>([]);
 
-  // Demo Data Generator
-  const generateInitialData = () => {
+  // Demo Data Generator - Updated to include missing required fields: fee and payoutStatus
+  const generateInitialData = (): Order[] => {
     const now = Date.now();
     return [
       {
@@ -21,9 +22,11 @@ const App = () => {
         destination: '경기 성남시 분당구 판교역로 456 (판교테크노밸리)',
         vehicleType: VehicleType.DAMAS,
         price: 35000,
+        fee: 0,
         status: OrderStatus.PENDING,
         description: '사무용품 박스 15개',
-        isInsured: true
+        isInsured: true,
+        payoutStatus: 'PENDING'
       },
       {
         id: 'demo-2',
@@ -33,10 +36,12 @@ const App = () => {
         destination: '서울 용산구 이태원로 1 (삼각지역)',
         vehicleType: VehicleType.MOTORCYCLE,
         price: 12000,
+        fee: 0,
         status: OrderStatus.ACCEPTED,
         driverId: 'me',
         description: '급한 서류 봉투',
-        isInsured: false
+        isInsured: false,
+        payoutStatus: 'PENDING'
       },
       {
         id: 'demo-3',
@@ -46,10 +51,12 @@ const App = () => {
         destination: '서울 중구 을지로 100 (을지로3가)',
         vehicleType: VehicleType.TRUCK_1TON,
         price: 55000,
+        fee: 0,
         status: OrderStatus.COMPLETED,
         driverId: 'driver2',
         description: '가구 운반',
-        isInsured: true
+        isInsured: true,
+        payoutStatus: 'COMPLETED'
       },
       {
         id: 'demo-4',
@@ -59,9 +66,11 @@ const App = () => {
         destination: '서울 서초구 남부순환로 2583 (예술의전당)',
         vehicleType: VehicleType.LABO,
         price: 40000,
+        fee: 0,
         status: OrderStatus.COMPLETED,
         description: '전시 물품',
-        isInsured: true
+        isInsured: true,
+        payoutStatus: 'COMPLETED'
       }
     ];
   };
@@ -112,14 +121,17 @@ const App = () => {
     ];
     const random = scenarios[Math.floor(Math.random() * scenarios.length)];
     
+    // Fix: Added missing required properties 'fee' and 'payoutStatus' to satisfy Omit<Order, 'id' | 'createdAt' | 'status'>
     addOrder({
       customerName: '시연용 고객',
       origin: random.origin,
       destination: random.dest,
       vehicleType: random.type,
       price: random.price,
+      fee: 0,
       description: random.item,
-      isInsured: true
+      isInsured: true,
+      payoutStatus: 'PENDING'
     });
   };
 

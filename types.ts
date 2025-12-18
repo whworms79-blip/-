@@ -1,3 +1,4 @@
+
 export enum UserRole {
   CUSTOMER = 'CUSTOMER',
   DRIVER = 'DRIVER',
@@ -9,7 +10,7 @@ export enum VehicleType {
   DAMAS = 'DAMAS',
   LABO = 'LABO',
   TRUCK_1TON = 'TRUCK_1TON',
-  TRUCK_1TON_WING = 'TRUCK_1TON_WING', // 윙바디
+  TRUCK_1TON_WING = 'TRUCK_1TON_WING',
   TRUCK_2_5TON = 'TRUCK_2_5TON'
 }
 
@@ -21,9 +22,9 @@ export enum OrderStatus {
 }
 
 export interface CargoDetails {
-  weight: string; // e.g., "500kg"
-  size: string;   // e.g., "100x100x100"
-  type: string;   // e.g., "박스", "팔레트", "가구"
+  weight: string;
+  size: string;
+  type: string;
 }
 
 export interface Order {
@@ -32,19 +33,23 @@ export interface Order {
   customerName: string;
   origin: string;
   destination: string;
+  recipientPhone?: string; // 배차킹 스타일: 도착지 알림용
   vehicleType: VehicleType;
-  vehicleOption?: string[]; // 리프트, 냉동 등
+  vehicleOption?: string[];
   price: number;
+  fee: number; // 더운반 스타일: 수수료 (0원 강조용)
   status: OrderStatus;
   driverId?: string;
   description?: string;
   cargoDetails?: CargoDetails;
-  isInsured: boolean; // 적재물 보험 가입 여부
-  electronicReceiptSigned?: boolean; // 전자 인수증 서명 여부
+  isInsured: boolean;
+  electronicReceiptSigned?: boolean;
+  payoutStatus: 'PENDING' | 'READY' | 'COMPLETED'; // 즉시 정산 상태
 }
 
 export interface OrderStats {
   totalOrders: number;
   activeDrivers: number;
   revenue: number;
+  efficiencyRate: number; // 카카오T 스타일: 공차율 최적화 지표
 }
